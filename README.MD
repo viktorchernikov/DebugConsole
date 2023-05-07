@@ -1,6 +1,12 @@
 # Viktor Chernikov's Debug Console
 Somewhat stupid debug console implementation
 
+## Installation
+Debug console can be installed with the Unity Package Manager. Please follow the instructions in the manual about [Installing a package from a Git URL](https://docs.unity3d.com/Manual/upm-ui-giturl.html).
+
+Use the following URL in the package manager to add a transport via git URL. Change `dev` to any of the stable versions in the repository's branches to choose which version would you like to add:<br>
+https://github.com/viktorchernikov/DebugConsole.git#dev
+
 ## Initialization
 ```csharp
 private void Init()
