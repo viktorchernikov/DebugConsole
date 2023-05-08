@@ -36,6 +36,8 @@ namespace VCUE
                 }
             }
         }
+        public static bool LogCommands = true;
+        public static StringComparison FindComparison = StringComparison.InvariantCultureIgnoreCase;
 
         public static void Log(string message) => Log(message, null);
         public static void Log(string message, string source) => Log(message, source, LogSeverity.Info);
@@ -53,20 +55,92 @@ namespace VCUE
             OnClearLogs?.Invoke();
             OnUpdate?.Invoke();
         }
+
+        #region Command invoking
         public static bool InvokeCommand(string name, params object[] args)
         {
-            if (cachedMethods.ContainsKey(name))
+            if (HasCommand(name))
             {
-                InvokeMethod(cachedMethods[name], args);
-                OnCommand?.Invoke();
-                OnUpdate?.Invoke();
-                return true;
+                return InvokeCommand(cmds[name]);
             }
             return false;
         }
+        public static bool InvokeCommand(ConsoleCommandInfo name, params object[] args)
+        {
+            try
+            {
+                name.MethodRef.Invoke(null, args);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log(e.Message, "Console", LogSeverity.Error);
+                return false;
+            }
+        }
+        #endregion
+        #region Command Retrieving
+        public static bool HasCommand(string name)
+        {
+            return cmdNames.Contains(name);
+        }
+        public static bool IsValid(ConsoleCommandInfo command)
+        {
+            return cmds.ContainsValue(command);
+        }
+        public static ConsoleCommandInfo GetCommand(string name)
+        {
+            return cmds[name];
+        }
+        public static bool TryGetCommand(string name, out ConsoleCommandInfo result)
+        {
+            if (HasCommand(name))
+            {
+                result = GetCommand(name);
+                return true;
+            }
+            result = null;
+            return false;
+        }
+        public static ConsoleCommandInfo FindCommand(string name)
+        {
+            ConsoleCommandInfo command;
+            if (!TryGetCommand(name, out command))
+            {
+                foreach(var cmdn in cmdNames)
+                {
+                    if (cmdn.Contains(name, FindComparison))
+                    {
+                        command = GetCommand(cmdn);
+                    }
+                }
+            }
+            return command;
+        }
+        public static bool TryFindCommand(string name, out ConsoleCommandInfo result)
+        {
+            result = FindCommand(name);
+            return result != null;
+        }
+        public static IReadOnlyCollection<ConsoleCommandInfo> FindCommands(string name)
+        {
+            var list = new List<ConsoleCommandInfo>();
+            foreach (var cn in cmdNames)
+            {
+                ConsoleCommandInfo c;
+                if (TryFindCommand(name, out c))
+                {
+                    list.Add(c);
+                }
+            }
+            return list;
+        }
+        #endregion
+
         public static int LoadAssemblies(Assembly[] assemblies)
         {
-            cachedMethods.Clear();
+            cmds.Clear();
+            cmdNames.Clear();
             int count = 0;
             foreach (Assembly asm in assemblies)
             {
@@ -81,9 +155,11 @@ namespace VCUE
                         ConsoleCommand atb = method.GetCustomAttribute<ConsoleCommand>(false);
                         if (atb != null)
                         {
-                            if (cachedMethods.ContainsKey(atb.Name))
+                            var name = atb.Name;
+
+                            if (cmds.ContainsKey(atb.Name))
                             {
-                                throw new InvalidCommandException($"Encountered trouble while loading console commands from assemblies - can't declare multiple commands with the same name! See {method.DeclaringType} and {cachedMethods[atb.Name].DeclaringType} classes");
+                                throw new InvalidCommandException($"Encountered trouble while loading console commands from assemblies - can't declare multiple commands with the same name! See {method.DeclaringType} and {cmds[name].MethodRef.DeclaringType} classes");
                             }
                             if (!method.IsStatic)
                             {
@@ -93,8 +169,11 @@ namespace VCUE
                             {
                                 throw new InvalidCommandException($"Encountered trouble while loading console command - command name can't be empty! See {method.DeclaringType}");
                             }
+
+                            ConsoleCommandInfo cmd = new ConsoleCommandInfo(name, method);
+                            cmds.Add(name, cmd);
+                            cmdNames.Add(name);
                             count++;
-                            cachedMethods.Add(atb.Name, method);
                         }
                     }
                 }
@@ -106,8 +185,6 @@ namespace VCUE
             return count;
         }
 
-
-        private static void InvokeMethod(MethodInfo method, params object[] parameters) => method.Invoke(null, parameters);
         private static void OnUnityLog(string condition, string stackTrace, LogType type)
         {
             LogSeverity severity = LogSeverity.Info;
@@ -132,7 +209,8 @@ namespace VCUE
 
         private static bool logUnity = false;
 
-        private static readonly Dictionary<string, MethodInfo> cachedMethods = new Dictionary<string, MethodInfo>();
+        private static readonly Dictionary<string, ConsoleCommandInfo> cmds = new Dictionary<string, ConsoleCommandInfo>();
+        private static readonly HashSet<string> cmdNames = new HashSet<string>();
         private static readonly List<LogMessage> savedLogs = new List<LogMessage>();
     }
 }
