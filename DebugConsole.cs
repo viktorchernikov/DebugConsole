@@ -7,7 +7,7 @@ namespace VCUE
 {
     public static class DebugConsole
     {
-        public static IReadOnlyCollection<string> Logs => (IReadOnlyCollection<string>)savedLogs;
+        public static IReadOnlyCollection<LogMessage> Logs => savedLogs;
 
         public static readonly Version Version = new Version(major: 1, minor: 1);
 
