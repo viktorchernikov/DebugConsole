@@ -9,6 +9,8 @@ namespace VCUE
     {
         public static IReadOnlyCollection<string> Logs => (IReadOnlyCollection<string>)savedLogs;
 
+        public static readonly Version Version = new Version(major: 1, minor: 1);
+
         public static event Action<LogMessage> OnLog;
         public static event Action OnClearLogs;
         public static event Action OnUpdate;
