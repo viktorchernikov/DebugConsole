@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 
 namespace VCUE
@@ -37,11 +38,15 @@ namespace VCUE
             }
         }
         public static bool LogCommands = true;
+        public static bool ShowTimestamp = false;
+        public static bool ShowSource = false;
         public static StringComparison FindComparison = StringComparison.InvariantCultureIgnoreCase;
 
         public static void Log(string message) => Log(message, null);
         public static void Log(string message, string source) => Log(message, source, LogSeverity.Info);
+        public static void Log(string message, LogSeverity severity) => Log(message, null, severity);
         public static void Log(string message, string source, LogSeverity severity = LogSeverity.Info) => Log(message, source, DateTime.Now, severity);
+        public static void Log(string message, DateTime timestamp, LogSeverity severity = LogSeverity.Info) => Log(message, null, timestamp, severity);
         public static void Log(string message, string source, DateTime timestamp, LogSeverity severity = LogSeverity.Info)
         {
             LogMessage msg = new LogMessage(message, source, timestamp, severity);
@@ -65,11 +70,23 @@ namespace VCUE
             }
             return false;
         }
-        public static bool InvokeCommand(ConsoleCommandInfo name, params object[] args)
+        public static bool InvokeCommand(ConsoleCommandInfo command, params object[] args)
         {
+            if (LogCommands)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("> ");
+                sb.Append(command.Name);
+                foreach (object arg in args)
+                {
+                    sb.Append(" ");
+                    sb.Append(arg);
+                }
+                Log(sb.ToString(), LogSeverity.Info);
+            }
             try
             {
-                name.MethodRef.Invoke(null, args);
+                command.MethodRef.Invoke(null, args);
                 return true;
             }
             catch (Exception e)

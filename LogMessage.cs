@@ -26,14 +26,17 @@ namespace VCUE
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("[");
-            sb.Append(Timestamp.Hour);
-            sb.Append(":");
-            sb.Append(Timestamp.Minute);
-            sb.Append(":");
-            sb.Append(Timestamp.Second);
-            sb.Append("] ");
-            if (Source != null)
+            if (DebugConsole.ShowTimestamp)
+            {
+                sb.Append("[");
+                sb.Append(Timestamp.Hour);
+                sb.Append(":");
+                sb.Append(Timestamp.Minute);
+                sb.Append(":");
+                sb.Append(Timestamp.Second);
+                sb.Append("] ");
+            }
+            if (!string.IsNullOrEmpty(Source) && DebugConsole.ShowSource)
             {
                 sb.Append("{");
                 sb.Append(Source);
